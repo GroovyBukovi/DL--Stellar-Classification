@@ -1,54 +1,95 @@
-import pandas as pd
+"""import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
-# Load the dataset
-file_path = "star_classification.csv"  # Change to your actual file path
-df = pd.read_csv(file_path)
+# === Load Data ===
+df = pd.read_csv("creditcard.csv")
 
-# Convert class labels to numeric
-df["class"] = df["class"].map({'GALAXY': 0, 'QSO': 1, 'STAR': 2})
+# === Extract Features and Labels ===
+X = df.drop(columns=["Time", "Class"])
+y = df["Class"]
 
-# Select numeric feature columns (exclude identifiers and target)
-feature_columns = [col for col in df.columns if col not in ["obj_ID", "spec_obj_ID", "class"]]
-
-# Standardize features
+# === Standardize Features ===
 scaler = StandardScaler()
-X_scaled = scaler.fit_transform(df[feature_columns])
+X_scaled = scaler.fit_transform(X)
 
-# Apply PCA with 3 components
+# === PCA Transformation ===
 pca = PCA(n_components=3)
 X_pca = pca.fit_transform(X_scaled)
 
-# Create DataFrame for visualization
-df_pca = pd.DataFrame(X_pca, columns=["PC1", "PC2", "PC3"])
-df_pca["Stellar Object"] = df["class"].map({0: "GALAXY", 1: "QUASAR", 2: "STAR"})
+# === Prepare DataFrame for Plotting ===
+pca_df = pd.DataFrame(data=X_pca, columns=['PC1', 'PC2', 'PC3'])
+pca_df['Class'] = y.values
 
-# Color map for the classes
-color_map = {"GALAXY": "blue", "QUASAR": "red", "STAR": "green"}
-colors = df_pca["Stellar Object"].map(color_map)
-
-# 3D scatter plot
+# === Plot PCA Result ===
 fig = plt.figure(figsize=(10, 7))
 ax = fig.add_subplot(111, projection='3d')
 
-ax.scatter(df_pca["PC1"], df_pca["PC2"], df_pca["PC3"],
-           c=colors, alpha=0.7, s=50)
+colors = {0: 'green', 1: 'red'}
+labels = {0: 'Non-Fraud', 1: 'Fraud'}
 
-ax.set_xlabel("Principal Component 1")
-ax.set_ylabel("Principal Component 2")
-ax.set_zlabel("Principal Component 3")
-ax.set_title("3D PCA Projection of Stellar Object Features")
+for cls in [0, 1]:
+    subset = pca_df[pca_df['Class'] == cls]
+    ax.scatter(subset['PC1'], subset['PC2'], subset['PC3'],
+               c=colors[cls], label=labels[cls], s=1, alpha=0.6)
 
-# Custom legend
-from matplotlib.lines import Line2D
-legend_elements = [Line2D([0], [0], marker='o', color='w', label=label,
-                          markerfacecolor=color, markersize=8)
-                   for label, color in color_map.items()]
-ax.legend(handles=legend_elements, title="Stellar Object")
+ax.set_title('PCA (3 Components) - Credit Card Transactions')
+ax.set_xlabel('PC1')
+ax.set_ylabel('PC2')
+ax.set_zlabel('PC3')
+ax.legend()
 
-# Save figure
+# === Save Plot ===
 plt.tight_layout()
-plt.savefig("PCA_representation_3D.png")
+plt.savefig("pca_2d_creditcard.png", dpi=300)
+plt.show()"""
+
+
+
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+import matplotlib.pyplot as plt
+
+# === Load Data ===
+df = pd.read_csv("creditcard.csv")
+
+# === Extract Features and Labels ===
+X = df.drop(columns=["Time", "Class"])
+y = df["Class"]
+
+# === Standardize Features ===
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# === PCA Transformation (2D) ===
+pca = PCA(n_components=2)
+X_pca = pca.fit_transform(X_scaled)
+
+# === Prepare DataFrame for Plotting ===
+pca_df = pd.DataFrame(data=X_pca, columns=['PC1', 'PC2'])
+pca_df['Class'] = y.values
+
+# === Plot 2D PCA Result ===
+plt.figure(figsize=(10, 7))
+colors = {0: 'blue', 1: 'red'}
+labels = {0: 'Non-Fraud', 1: 'Fraud'}
+
+for cls in [0, 1]:
+    subset = pca_df[pca_df['Class'] == cls]
+    plt.scatter(subset['PC1'], subset['PC2'],
+                c=colors[cls], label=labels[cls], s=1, alpha=0.6)
+
+plt.title('PCA (2 Components) - Credit Card Transactions')
+plt.xlabel('PC1')
+plt.ylabel('PC2')
+plt.legend()
+plt.tight_layout()
+
+# === Save Plot ===
+plt.savefig("pca_2d_creditcard.png", dpi=300)
+plt.show()

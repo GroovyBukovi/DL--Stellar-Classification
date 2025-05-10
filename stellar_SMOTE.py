@@ -3,22 +3,25 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from imblearn.under_sampling import RandomUnderSampler
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from torch.utils.data import TensorDataset, DataLoader
 from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay
 import matplotlib.pyplot as plt
 from imblearn.over_sampling import SMOTE
+from imblearn.pipeline import Pipeline
+from collections import Counter
 
 # === LOAD DATA ===
-df = pd.read_csv("star_classification.csv")
+df = pd.read_csv("creditcard.csv")
 print(df.shape)
-print(df['class'].value_counts())
+print(df['Class'].value_counts())
 
 # === SELECT FEATURES ===
 # features = ['u', 'g', 'r', 'i', 'z', 'redshift']
-features = ['u', 'g', 'z', 'redshift']
-target = 'class'
+features = ['V7', 'V10', 'V12', 'V14', 'V14', 'V16', 'V17', 'V20', 'V27']
+target = 'Class'
 
 X = df[features].values
 y = df[target].values
@@ -42,12 +45,50 @@ X_train, X_test, y_train, y_test = train_test_split(
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
-# Apply SMOTE
+"""# Apply SMOTE
 smote = SMOTE(random_state=42)
 X_resampled, y_resampled = smote.fit_resample(X_train, y_train)
 
 X_train_tensor = torch.tensor(X_resampled, dtype=torch.float32).to(device)
+y_train_tensor = torch.tensor(y_resampled, dtype=torch.long).to(device)"""
+
+
+# === Undersample first, then apply SMOTE to achieve 10% fraud ===
+under = RandomUnderSampler(sampling_strategy={0: 261000, 1: 492}, random_state=42)
+
+# Step 2: SMOTE minority to 29000
+smote = SMOTE(sampling_strategy={1: 29000}, random_state=42)
+
+
+# Correct pipeline order
+pipeline = Pipeline(steps=[('under', under), ('smote', smote)])
+
+
+# Step 3: Apply the resampling
+X_resampled, y_resampled = pipeline.fit_resample(X, y)
+
+X_train_tensor = torch.tensor(X_resampled, dtype=torch.float32).to(device)
 y_train_tensor = torch.tensor(y_resampled, dtype=torch.long).to(device)
+
+# Step 4: Check class distribution
+print('Original dataset shape:', Counter(y))
+print('Resampled dataset shape:', Counter(y_resampled))
+
+
+# Save the new, resampled dataset
+
+data_combined = np.hstack((X_resampled, y_resampled.reshape(-1, 1)))
+
+
+num_features = X_resampled.shape[1]
+feature_columns = [f'feature_{i}' for i in range(num_features)]
+columns = feature_columns + ['label']
+
+# Create the DataFrame
+df_resampled = pd.DataFrame(data_combined, columns=columns)
+
+# Save to CSV
+df_resampled.to_csv('resampled_dataset.csv', index=False)
 
 # === CONVERT TO TENSORS ===
 # X_train_tensor = torch.tensor(X_train, dtype=torch.float32).to(device)
@@ -164,7 +205,8 @@ def print_report(model, dataloader):
             _, predicted = torch.max(preds, 1)
             all_preds.extend(predicted.cpu().numpy())
             all_labels.extend(y_batch.cpu().numpy())
-    print(classification_report(all_labels, all_preds, target_names=le.classes_))
+    print(classification_report(all_labels, all_preds, target_names=[str(c) for c in le.classes_]))
+
 
 print_report(model, test_loader)
 

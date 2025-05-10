@@ -3,11 +3,9 @@ from matplotlib import pyplot as plt
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.model_selection import train_test_split
 
-X = pd.read_csv("star_classification.csv")
-X = X.drop('obj_ID', axis=1)
-X = X.drop('spec_obj_ID', axis=1)
-y = X["class"]
-X = X.drop('class', axis=1)
+X = pd.read_csv("creditcard.csv")
+y = X["Class"]
+X = X.drop('Class', axis=1)
 
 
 
