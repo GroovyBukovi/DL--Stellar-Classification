@@ -14,14 +14,17 @@ from imblearn.pipeline import Pipeline
 from collections import Counter
 
 # === LOAD DATA ===
-df = pd.read_csv("creditcard.csv")
+df = pd.read_csv("train.csv")
 print(df.shape)
-print(df['Class'].value_counts())
+print(df['Cover_Type'].value_counts())
+
 
 # === SELECT FEATURES ===
 # features = ['u', 'g', 'r', 'i', 'z', 'redshift']
-features = ['V7', 'V10', 'V12', 'V14', 'V14', 'V16', 'V17', 'V20', 'V27']
-target = 'Class'
+features = df.drop(columns=["Cover_Type"]).columns.tolist()
+
+#features = ['V7', 'V10', 'V12', 'V14', 'V14', 'V16', 'V17', 'V20', 'V27']
+target = 'Cover_Type'
 
 X = df[features].values
 y = df[target].values
